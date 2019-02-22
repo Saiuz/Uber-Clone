@@ -30,7 +30,8 @@ dependencies {
     //Dependências para o firebase
     implementation 'com.google.firebase:firebase-core:16.0.4'
     implementation 'com.google.firebase:firebase-database:16.0.3'  //Realtime Database
-    implementation 'com.google.firebase:firebase-auth:16.0.4'  //Authentication
+    implementation 'com.google.firebase:firebase-auth:16.0.4'
+    implementation 'com.android.support:design:28.0.0'//Authentication
 }
 
 apply plugin: 'com.google.gms.google-services'
