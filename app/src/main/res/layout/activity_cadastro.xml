@@ -8,7 +8,7 @@
     tools:context=".activity.CadastroActivity">
 
     <Button
-        android:id="@+id/buttonCadastrar"
+        android:id="@+id/buttonEntrar"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
@@ -99,7 +99,8 @@
             android:id="@+id/editCadastroNome"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Nome" />
+            android:hint="Nome"
+            android:inputType="textPersonName" />
     </android.support.design.widget.TextInputLayout>
 
     <android.support.design.widget.TextInputLayout
