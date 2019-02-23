@@ -1,11 +1,11 @@
 package com.eduardo.uberclone.activity;
 
 import android.Manifest;
+import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.support.annotation.NonNull;
-import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
@@ -16,11 +16,14 @@ import com.eduardo.uberclone.helper.Permissoes;
 import com.eduardo.uberclone.helper.UsuarioFirebase;
 import com.google.firebase.auth.FirebaseAuth;
 
+import dmax.dialog.SpotsDialog;
+
 public class MainActivity extends AppCompatActivity {
     private FirebaseAuth autenticacao;
     private String[] permissoes = new String[]{
             Manifest.permission.ACCESS_FINE_LOCATION
     };
+    private AlertDialog dialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,8 +35,6 @@ public class MainActivity extends AppCompatActivity {
         //Validar Permissões
         Permissoes.validarPermissoes(permissoes, this, 1);
 
-        /*autenticacao = ConfiguracaoFirebase.getFirebaseAuth();
-        autenticacao.signOut();*/
     }
 
     public void abrirTelaLogin(View view){

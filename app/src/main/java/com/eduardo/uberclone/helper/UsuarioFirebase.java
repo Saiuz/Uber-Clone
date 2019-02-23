@@ -1,11 +1,12 @@
 package com.eduardo.uberclone.helper;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
-import com.eduardo.uberclone.activity.MapsActivity;
+import com.eduardo.uberclone.activity.PassageiroActivity;
 import com.eduardo.uberclone.activity.RequisicoesActivity;
 import com.eduardo.uberclone.config.ConfiguracaoFirebase;
 import com.eduardo.uberclone.model.Usuario;
@@ -65,7 +66,7 @@ public class UsuarioFirebase {
                         Intent i = new Intent(activity, RequisicoesActivity.class);
                         activity.startActivity(i);
                     }else{
-                        Intent i = new Intent(activity, MapsActivity.class);
+                        Intent i = new Intent(activity, PassageiroActivity.class);
                         activity.startActivity(i);
                     }
                 }
