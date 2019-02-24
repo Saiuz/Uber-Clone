@@ -1,7 +1,6 @@
 package com.eduardo.uberclone.helper;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.Intent;
 import android.support.annotation.NonNull;
 import android.util.Log;
@@ -25,6 +24,15 @@ public class UsuarioFirebase {
     public static FirebaseUser getUsuarioAtual(){
         FirebaseAuth usuario = ConfiguracaoFirebase.getFirebaseAuth();
         return usuario.getCurrentUser();
+    }
+
+    public static Usuario getDadosUsuarioLogado(){
+        FirebaseUser firebaseUser = getUsuarioAtual();
+        Usuario usuario = new Usuario();
+        usuario.setId(firebaseUser.getUid());
+        usuario.setEmail(firebaseUser.getEmail());
+
+        return usuario;
     }
 
     public static boolean atualizarNomeUsuario(String nome){

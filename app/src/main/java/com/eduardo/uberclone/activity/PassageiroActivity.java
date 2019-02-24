@@ -9,9 +9,8 @@ import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.location.LocationProvider;
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -24,7 +23,10 @@ import android.widget.Toast;
 
 import com.eduardo.uberclone.R;
 import com.eduardo.uberclone.config.ConfiguracaoFirebase;
+import com.eduardo.uberclone.helper.UsuarioFirebase;
 import com.eduardo.uberclone.model.Destino;
+import com.eduardo.uberclone.model.Requisicao;
+import com.eduardo.uberclone.model.Usuario;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -44,6 +46,7 @@ public class PassageiroActivity extends AppCompatActivity implements OnMapReadyC
     private LocationManager locationManager;
     private LocationListener locationListener;
     private EditText editDestino;
+    private LatLng localPassageiro;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,7 +78,7 @@ public class PassageiroActivity extends AppCompatActivity implements OnMapReadyC
         if (!enderecoDestino.equals("") || enderecoDestino != null){
             Address addressDestino = recuperarEndereco(enderecoDestino);
             if (addressDestino != null){
-                Destino destino = new Destino();
+                final Destino destino = new Destino();
                 destino.setCidade(addressDestino.getAdminArea());
                 destino.setCep(addressDestino.getPostalCode());
                 destino.setBairro(addressDestino.getSubLocality());
@@ -97,7 +100,8 @@ public class PassageiroActivity extends AppCompatActivity implements OnMapReadyC
                         .setPositiveButton("Confirmar", new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
-
+                                //Salvar requisição
+                                salvarRequisicao(destino);
                             }
                         }).setNegativeButton("Cancelar", new DialogInterface.OnClickListener() {
                             @Override
@@ -112,6 +116,19 @@ public class PassageiroActivity extends AppCompatActivity implements OnMapReadyC
         }else{
             Toast.makeText(this, "Informe o endereço de destino", Toast.LENGTH_SHORT).show();
         }
+    }
+
+    private void salvarRequisicao(Destino destino){
+        Requisicao requisicao = new Requisicao();
+        requisicao.setDestino(destino);
+
+        Usuario usuarioPassageiro = UsuarioFirebase.getDadosUsuarioLogado();
+        usuarioPassageiro.setLatitude(String.valueOf(localPassageiro.latitude));
+        usuarioPassageiro.setLongitude(String.valueOf(localPassageiro.longitude));
+
+        requisicao.setPassageiro(usuarioPassageiro);
+        requisicao.setStatus(Requisicao.STATUS_AGUARDANDO);
+        requisicao.salvar();
     }
 
     private Address recuperarEndereco(String endereco){
@@ -141,28 +158,29 @@ public class PassageiroActivity extends AppCompatActivity implements OnMapReadyC
                 //Recuperar latitude e longitudo
                 double latitude = location.getLatitude();
                 double longitude = location.getLongitude();
-                LatLng meuLocal = new LatLng(latitude, longitude);
+                localPassageiro = new LatLng(latitude, longitude);
 
                 mMap.clear();
                 mMap.addMarker(
                         new MarkerOptions()
-                                .position(meuLocal)
+                                .position(localPassageiro)
                                 .title("Meu local")
                                 .icon(BitmapDescriptorFactory.fromResource(R.drawable.usuario))
                 );
                 mMap.moveCamera(
-                        CameraUpdateFactory.newLatLngZoom(meuLocal, 15)
+                        CameraUpdateFactory.newLatLngZoom(localPassageiro, 15)
                 );
 
                 //Solicitar atualizações de localização
                 if (ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
                     locationManager.requestLocationUpdates(
-                            LocationManager.NETWORK_PROVIDER,
+                            LocationManager.GPS_PROVIDER,
                             10000,
                             20,
                             locationListener
                     );
                 }
+                Toast.makeText(PassageiroActivity.this, "DEBUGG", Toast.LENGTH_SHORT).show();
             }
 
             @Override
@@ -179,7 +197,17 @@ public class PassageiroActivity extends AppCompatActivity implements OnMapReadyC
             public void onProviderDisabled(String provider) {
 
             }
+
         };
+        //Solicitar atualizações de localização
+        if (ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            locationManager.requestLocationUpdates(
+                    LocationManager.NETWORK_PROVIDER,
+                    10000,
+                    20,
+                    locationListener
+            );
+        }
     }
 
     @Override
