@@ -1,6 +1,14 @@
 package com.eduardo.uberclone.activity;
 
+import android.Manifest;
+import android.content.Context;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
@@ -8,14 +16,20 @@ import android.support.v7.widget.RecyclerView;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.TextView;
 
 import com.eduardo.uberclone.R;
 import com.eduardo.uberclone.adapter.RequisicoesAdapter;
 import com.eduardo.uberclone.config.ConfiguracaoFirebase;
+import com.eduardo.uberclone.helper.RecyclerItemClickListener;
 import com.eduardo.uberclone.helper.UsuarioFirebase;
 import com.eduardo.uberclone.model.Requisicao;
 import com.eduardo.uberclone.model.Usuario;
+import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -37,12 +51,63 @@ public class RequisicoesActivity extends AppCompatActivity {
     private RequisicoesAdapter adapter;
     private Usuario motorista;
 
+    private LocationManager locationManager;
+    private LocationListener locationListener;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_requisicoes);
 
         inicializarComponentes();
+
+        //Recuperar localizacao do usuário
+        recuperarLocalizacaoUsuario();
+    }
+
+    private void recuperarLocalizacaoUsuario() {
+        locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
+
+        locationListener = new LocationListener() {
+            @Override
+            public void onLocationChanged(Location location) {
+                //Recuperar latitude e longitudo
+                String latitude = String.valueOf(location.getLatitude());
+                String longitude = String.valueOf(location.getLongitude());
+
+                if (!latitude.isEmpty() && !longitude.isEmpty()){
+                    motorista.setLatitude(latitude);
+                    motorista.setLongitude(longitude);
+                    locationManager.removeUpdates(locationListener);
+                    adapter.notifyDataSetChanged();
+                }
+            }
+
+            @Override
+            public void onStatusChanged(String provider, int status, Bundle extras) {
+
+            }
+
+            @Override
+            public void onProviderEnabled(String provider) {
+
+            }
+
+            @Override
+            public void onProviderDisabled(String provider) {
+
+            }
+
+        };
+        //Solicitar atualizações de localização
+        if (ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            locationManager.requestLocationUpdates(
+                    LocationManager.NETWORK_PROVIDER,
+                    0,
+                    0,
+                    locationListener
+            );
+        }
     }
 
     @Override
@@ -81,6 +146,34 @@ public class RequisicoesActivity extends AppCompatActivity {
         recyclerRequisicoes.setLayoutManager(layoutManager);
         recyclerRequisicoes.setHasFixedSize(true);
         recyclerRequisicoes.setAdapter(adapter);
+
+        //Adiciona evento de clique no recycler
+        recyclerRequisicoes.addOnItemTouchListener(
+                new RecyclerItemClickListener(
+                        getApplicationContext(),
+                        recyclerRequisicoes,
+                        new RecyclerItemClickListener.OnItemClickListener() {
+                            @Override
+                            public void onItemClick(View view, int position) {
+                                Requisicao requisicao = listaRequisicoes.get(position);
+                                Intent i = new Intent(RequisicoesActivity.this, CorridaActivity.class);
+                                i.putExtra("idRequisicao", requisicao.getId());
+                                i.putExtra("motorista", motorista);
+                                startActivity(i);
+                            }
+
+                            @Override
+                            public void onLongItemClick(View view, int position) {
+
+                            }
+
+                            @Override
+                            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+
+                            }
+                        }
+                )
+        );
 
         recuperarRequisicoes();
     }

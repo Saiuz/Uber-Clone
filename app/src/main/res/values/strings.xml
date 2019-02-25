@@ -4,4 +4,5 @@
     <string name="titulo_cadastro">Cadastrar-se</string>
     <string name="titulo_login">Acessar Conta</string>
     <string name="title_activity_passageiro">PassageiroActivity</string>
+    <string name="title_activity_corrida">CorridaActivity</string>
 </resources>
