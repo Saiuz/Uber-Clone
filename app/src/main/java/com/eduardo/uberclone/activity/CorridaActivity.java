@@ -7,14 +7,20 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
+import android.widget.Button;
+import android.widget.Toast;
 
 import com.eduardo.uberclone.R;
+import com.eduardo.uberclone.config.ConfiguracaoFirebase;
+import com.eduardo.uberclone.model.Requisicao;
+import com.eduardo.uberclone.model.Usuario;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -22,12 +28,23 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.ValueEventListener;
 
 public class CorridaActivity extends AppCompatActivity implements OnMapReadyCallback {
+    //Componentes
+    private Button buttonAceitarCorrida;
+
     private GoogleMap mMap;
     private LocationManager locationManager;
     private LocationListener locationListener;
     private LatLng localMotorista;
+    private Usuario motorista;
+    private String idRequisicao;
+    private Requisicao requisicao;
+    private DatabaseReference firebaseRef;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,6 +52,48 @@ public class CorridaActivity extends AppCompatActivity implements OnMapReadyCall
         setContentView(R.layout.activity_corrida);
 
         inicializarComponentes();
+
+        //Recupera dados usuário
+        if (getIntent().getExtras().containsKey("idRequisicao") && getIntent().getExtras().containsKey("motorista")){
+            Bundle extras = getIntent().getExtras();
+            motorista = (Usuario) extras.getSerializable("motorista");
+            idRequisicao = extras.getString("idRequisicao");
+            verificaStatusRequisicao();
+        }
+    }
+
+    private void verificaStatusRequisicao(){
+        final DatabaseReference requisicoes = firebaseRef.child("requisicoes")
+                .child(idRequisicao);
+        requisicoes.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                //Recupera requisicao
+                requisicao = dataSnapshot.getValue(Requisicao.class);
+
+                switch (requisicao.getStatus()){
+                    case Requisicao.STATUS_AGUARDANDO:
+                        requisicaoAguardando();
+                        break;
+                    case Requisicao.STATUS_A_CAMINHO:
+                        requisicaoACaminho();
+                        break;
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        });
+    }
+
+    private void requisicaoAguardando(){
+        buttonAceitarCorrida.setText("Aceitar Corrida");
+    }
+
+    private void requisicaoACaminho(){
+        buttonAceitarCorrida.setText("A caminho do passageiro");
     }
 
     /**
@@ -107,20 +166,34 @@ public class CorridaActivity extends AppCompatActivity implements OnMapReadyCall
         if (ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             locationManager.requestLocationUpdates(
                     LocationManager.NETWORK_PROVIDER,
-                    10000,
-                    20,
+                    0,
+                    0,
                     locationListener
             );
         }
     }
 
-    public void aceitarCorrida(View view){}
+    public void aceitarCorrida(View view){
+        //Configura requisicao
+        requisicao = new Requisicao();
+        requisicao.setId(idRequisicao);
+        requisicao.setMotorista(motorista);
+        requisicao.setStatus(Requisicao.STATUS_A_CAMINHO);
+
+        requisicao.atualizar();
+    }
 
     private void inicializarComponentes(){
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setTitle("Iniciar Corrida");
+
+        buttonAceitarCorrida = findViewById(R.id.buttonAceitarCorrida);
+
+        //Configurações iniciais
+        firebaseRef = ConfiguracaoFirebase.getFirebaseDatabase();
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
