@@ -3,6 +3,7 @@ package com.eduardo.uberclone.activity;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -10,8 +11,11 @@ import android.view.View;
 import android.widget.TextView;
 
 import com.eduardo.uberclone.R;
+import com.eduardo.uberclone.adapter.RequisicoesAdapter;
 import com.eduardo.uberclone.config.ConfiguracaoFirebase;
+import com.eduardo.uberclone.helper.UsuarioFirebase;
 import com.eduardo.uberclone.model.Requisicao;
+import com.eduardo.uberclone.model.Usuario;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -30,6 +34,8 @@ public class RequisicoesActivity extends AppCompatActivity {
     private FirebaseAuth autenticacao;
     private DatabaseReference firebaseRef;
     private List<Requisicao> listaRequisicoes = new ArrayList<>();
+    private RequisicoesAdapter adapter;
+    private Usuario motorista;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,8 +71,16 @@ public class RequisicoesActivity extends AppCompatActivity {
         textResultado = findViewById(R.id.textResultado);
 
         //Configurações iniciais
+        motorista = UsuarioFirebase.getDadosUsuarioLogado();
         autenticacao = ConfiguracaoFirebase.getFirebaseAuth();
         firebaseRef = ConfiguracaoFirebase.getFirebaseDatabase();
+
+        //Configurar recyclerview
+        adapter = new RequisicoesAdapter(listaRequisicoes, getApplicationContext(), motorista);
+        RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(getApplicationContext());
+        recyclerRequisicoes.setLayoutManager(layoutManager);
+        recyclerRequisicoes.setHasFixedSize(true);
+        recyclerRequisicoes.setAdapter(adapter);
 
         recuperarRequisicoes();
     }
@@ -91,6 +105,7 @@ public class RequisicoesActivity extends AppCompatActivity {
                     Requisicao requisicao = ds.getValue(Requisicao.class);
                     listaRequisicoes.add(requisicao);
                 }
+                adapter.notifyDataSetChanged();
             }
 
             @Override

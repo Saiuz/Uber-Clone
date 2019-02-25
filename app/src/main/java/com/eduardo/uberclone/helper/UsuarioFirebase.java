@@ -31,6 +31,7 @@ public class UsuarioFirebase {
         Usuario usuario = new Usuario();
         usuario.setId(firebaseUser.getUid());
         usuario.setEmail(firebaseUser.getEmail());
+        usuario.setNome(getUsuarioAtual().getDisplayName());
 
         return usuario;
     }
