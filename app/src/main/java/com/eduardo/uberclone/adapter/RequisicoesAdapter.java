@@ -10,8 +10,10 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.eduardo.uberclone.R;
+import com.eduardo.uberclone.helper.Local;
 import com.eduardo.uberclone.model.Requisicao;
 import com.eduardo.uberclone.model.Usuario;
+import com.google.android.gms.maps.model.LatLng;
 
 import java.util.List;
 
@@ -39,7 +41,22 @@ public class RequisicoesAdapter extends RecyclerView.Adapter<RequisicoesAdapter.
         Usuario passageiro = requisicao.getPassageiro();
 
         myViewHolder.nome.setText(passageiro.getNome());
-        myViewHolder.distancia.setText("1 km - aproximadamente");
+
+        if (motorista != null){
+            LatLng localPassageiro = new LatLng(
+                    Double.parseDouble(passageiro.getLatitude()),
+                    Double.parseDouble(passageiro.getLongitude())
+            );
+
+            LatLng localMotorista = new LatLng(
+                    Double.parseDouble(motorista.getLatitude()),
+                    Double.parseDouble(motorista.getLongitude())
+            );
+            float distancia = Local.calcularDistancia(localPassageiro, localMotorista);
+            String distanciaFormatada = Local.formatarDistancia(distancia);
+
+            myViewHolder.distancia.setText(distanciaFormatada +  "- aproximadamente");
+        }
     }
 
     @Override
