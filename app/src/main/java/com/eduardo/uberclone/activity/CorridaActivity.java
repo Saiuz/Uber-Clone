@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -14,6 +15,7 @@ import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
@@ -23,11 +25,17 @@ import com.eduardo.uberclone.config.ConfiguracaoFirebase;
 import com.eduardo.uberclone.helper.UsuarioFirebase;
 import com.eduardo.uberclone.model.Requisicao;
 import com.eduardo.uberclone.model.Usuario;
+import com.firebase.geofire.GeoFire;
+import com.firebase.geofire.GeoLocation;
+import com.firebase.geofire.GeoQuery;
+import com.firebase.geofire.GeoQueryEventListener;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.Circle;
+import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
@@ -67,10 +75,12 @@ public class CorridaActivity extends AppCompatActivity implements OnMapReadyCall
         if (getIntent().getExtras().containsKey("idRequisicao") && getIntent().getExtras().containsKey("motorista")){
             Bundle extras = getIntent().getExtras();
             motorista = (Usuario) extras.getSerializable("motorista");
-            localMotorista = new LatLng(
-                    Double.parseDouble(motorista.getLatitude()),
-                    Double.parseDouble(motorista.getLongitude())
-            );
+            if (motorista != null){
+                localMotorista = new LatLng(
+                        Double.parseDouble(motorista.getLatitude()),
+                        Double.parseDouble(motorista.getLongitude())
+                );
+            }
             idRequisicao = extras.getString("idRequisicao");
             requisicaoAtiva = extras.getBoolean("requisicaoAtiva");
             verificaStatusRequisicao();
@@ -137,6 +147,66 @@ public class CorridaActivity extends AppCompatActivity implements OnMapReadyCall
 
         //Centralizar dois marcadores (motorista e passageiro)
         centralizarDoisMarcadores(marcadorMotorista, marcadorPassageiro);
+
+        //Inicia monitoramento do motorista / passageiro
+        iniciarMonitoramentoCorrida(passageiro, motorista);
+    }
+
+    private void iniciarMonitoramentoCorrida(Usuario p, Usuario m){
+        //Inicializa GeoFire
+        DatabaseReference localUsuário = ConfiguracaoFirebase.getFirebaseDatabase()
+                .child("local_usuario");
+        GeoFire geoFire = new GeoFire(localUsuário);
+
+        //Adiciona círculo no passageiro
+        final Circle circulo = mMap.addCircle(
+                new CircleOptions()
+                .center(localPassageiro)
+                .radius(50) //em metros
+                .fillColor(Color.argb(90, 255, 153, 0))
+                .strokeColor(Color.argb(190, 255, 153, 0))
+        );
+
+        final GeoQuery geoQuery = geoFire.queryAtLocation(
+                new GeoLocation(localPassageiro.latitude, localPassageiro.longitude),
+                0.05 //em km (0.05 = 50 metros)
+        );
+        geoQuery.addGeoQueryEventListener(new GeoQueryEventListener() {
+            @Override
+            public void onKeyEntered(String key, GeoLocation location) {
+                if (key.equals(motorista.getId())){
+                    //Log.d("onKeyEntered", "onKeyEntered: motorista está dentro da área");
+
+                    //Altera o status da requisição
+                    requisicao.setStatus(Requisicao.STATUS_VIAGEM);
+                    requisicao.atualizarStatus();
+
+                    //Remove listener
+                    geoQuery.removeAllListeners();
+                    circulo.remove();
+                }
+            }
+
+            @Override
+            public void onKeyExited(String key) {
+
+            }
+
+            @Override
+            public void onKeyMoved(String key, GeoLocation location) {
+
+            }
+
+            @Override
+            public void onGeoQueryReady() {
+
+            }
+
+            @Override
+            public void onGeoQueryError(DatabaseError error) {
+
+            }
+        });
     }
 
     private void centralizarDoisMarcadores(Marker marcador1, Marker marcador2){
