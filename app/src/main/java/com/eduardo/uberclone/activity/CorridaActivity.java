@@ -20,6 +20,7 @@ import android.widget.Toast;
 
 import com.eduardo.uberclone.R;
 import com.eduardo.uberclone.config.ConfiguracaoFirebase;
+import com.eduardo.uberclone.helper.UsuarioFirebase;
 import com.eduardo.uberclone.model.Requisicao;
 import com.eduardo.uberclone.model.Usuario;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -116,6 +117,13 @@ public class CorridaActivity extends AppCompatActivity implements OnMapReadyCall
 
     private void requisicaoAguardando(){
         buttonAceitarCorrida.setText("Aceitar Corrida");
+
+        //Exibe marcador do motorista
+        adicionarMarcadorMotorista(localMotorista, motorista.getNome());
+
+        mMap.moveCamera(
+                CameraUpdateFactory.newLatLngZoom(localMotorista, 20)
+        );
     }
 
     private void requisicaoACaminho(){
@@ -200,6 +208,9 @@ public class CorridaActivity extends AppCompatActivity implements OnMapReadyCall
                 double latitude = location.getLatitude();
                 double longitude = location.getLongitude();
                 localMotorista = new LatLng(latitude, longitude);
+
+                //Atualizar GeoFire
+                UsuarioFirebase.atualizarDadosLocalizacao(latitude, longitude);
 
                 alteraInterfaceStatusRequisicao(statusRequisicao);
 
