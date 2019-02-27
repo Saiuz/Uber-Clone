@@ -3,6 +3,7 @@ package com.eduardo.uberclone.activity;
 import android.Manifest;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Address;
 import android.location.Geocoder;
@@ -110,22 +111,24 @@ public class PassageiroActivity extends AppCompatActivity implements OnMapReadyC
                     requisicao = lista.get(0);
 
                     if (requisicao != null){
-                        passageiro = requisicao.getPassageiro();
-                        localPassageiro = new LatLng(
-                                Double.parseDouble(passageiro.getLatitude()),
-                                Double.parseDouble(passageiro.getLongitude())
-                        );
-
-                        statusRequisicao = requisicao.getStatus();
-                        destino = requisicao.getDestino();
-                        if (requisicao.getMotorista() != null){
-                            motorista = requisicao.getMotorista();
-                            localMotorista = new LatLng(
-                                    Double.parseDouble(motorista.getLatitude()),
-                                    Double.parseDouble(motorista.getLongitude())
+                        if (!requisicao.getStatus().equals(Requisicao.STATUS_ENCERRADA)) {
+                            passageiro = requisicao.getPassageiro();
+                            localPassageiro = new LatLng(
+                                    Double.parseDouble(passageiro.getLatitude()),
+                                    Double.parseDouble(passageiro.getLongitude())
                             );
+
+                            statusRequisicao = requisicao.getStatus();
+                            destino = requisicao.getDestino();
+                            if (requisicao.getMotorista() != null) {
+                                motorista = requisicao.getMotorista();
+                                localMotorista = new LatLng(
+                                        Double.parseDouble(motorista.getLatitude()),
+                                        Double.parseDouble(motorista.getLongitude())
+                                );
+                            }
+                            alteraInterfaceStatusRequisicao(statusRequisicao);
                         }
-                        alteraInterfaceStatusRequisicao(statusRequisicao);
                     }
                 }
             }
@@ -139,7 +142,6 @@ public class PassageiroActivity extends AppCompatActivity implements OnMapReadyC
 
     private void alteraInterfaceStatusRequisicao(String status){
         if (status != null && !status.isEmpty()) {
-
             switch (status) {
                 case Requisicao.STATUS_AGUARDANDO:
                     requisicaoAguardando();
@@ -154,6 +156,10 @@ public class PassageiroActivity extends AppCompatActivity implements OnMapReadyC
                     requisicaoFinalizada();
                     break;
             }
+        }else {
+            //Adiciona marcador de passageiro
+            adicionarMarcadorPassageiro(localPassageiro, "Seu local");
+            centralizarMarcador(localPassageiro);
         }
     }
 
@@ -217,8 +223,25 @@ public class PassageiroActivity extends AppCompatActivity implements OnMapReadyC
         DecimalFormat decimal = new DecimalFormat("0.00");
         String resultado = decimal.format(valor);
 
-
         buttonChamarUber.setText("Corrida Finalizada - R$ " + resultado);
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this)
+                .setTitle("Total Viagem")
+                .setMessage("Sua viagem ficou: R$ " + resultado)
+                .setCancelable(false)
+                .setNegativeButton("Encerrar viagem", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        requisicao.setStatus(Requisicao.STATUS_ENCERRADA);
+                        requisicao.atualizarStatus();
+
+                        finish();
+                        startActivity(new Intent(getIntent()));
+                    }
+                });
+        AlertDialog dialog = builder.create();
+        dialog.show();
+
     }
 
     private void adicionarMarcadorPassageiro(LatLng localizacao, String titulo){
@@ -407,6 +430,16 @@ public class PassageiroActivity extends AppCompatActivity implements OnMapReadyC
                 if (statusRequisicao != null && !statusRequisicao.isEmpty()) {
                     if (statusRequisicao.equals(Requisicao.STATUS_VIAGEM) ||  statusRequisicao.equals(Requisicao.STATUS_FINALIZADA)) {
                         locationManager.removeUpdates(locationListener);
+                    }else{
+                        //Solicitar atualizações de localização
+                        if (ActivityCompat.checkSelfPermission(PassageiroActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                            locationManager.requestLocationUpdates(
+                                    LocationManager.NETWORK_PROVIDER,
+                                    10000,
+                                    20,
+                                    locationListener
+                            );
+                        }
                     }
                 }
             }
@@ -428,7 +461,7 @@ public class PassageiroActivity extends AppCompatActivity implements OnMapReadyC
 
         };
         //Solicitar atualizações de localização
-        if (ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             locationManager.requestLocationUpdates(
                     LocationManager.NETWORK_PROVIDER,
                     10000,
